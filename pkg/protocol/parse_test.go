@@ -56,22 +56,30 @@ func TestRequestReader(t *testing.T) {
 }
 
 func TestResponseReader(t *testing.T) {
-	buffer := bytes.NewBufferString("USB\n2400\nRPRT 0\nRPRT 11\n")
+	buffer := bytes.NewBufferString("USB\n2400\nRPRT 0\nget_freq:\nFrequency: 145000000\nRPRT 0\nRPRT 11\n")
 
 	reader := NewResponseReader(buffer)
-	resp, err := reader.ReadResponse()
 
+	resp, err := reader.ReadResponse(false)
 	require.NoError(t, err)
-
 	assert.Equal(t, Response{
 		Data:   []string{"USB", "2400"},
 		Result: "0",
 	}, resp)
 
-	resp, err = reader.ReadResponse()
+	resp, err = reader.ReadResponse(true)
+	require.NoError(t, err)
+	assert.Equal(t, Response{
+		Command: CommandKey("get_freq"),
+		Data:    []string{"145000000"},
+		Keys:    []string{"Frequency"},
+		Result:  "0",
+	}, resp)
+
+	resp, err = reader.ReadResponse(false)
 	assert.NoError(t, err)
 	assert.Equal(t, resp.Result, "11")
 
-	_, err = reader.ReadResponse()
+	_, err = reader.ReadResponse(false)
 	assert.Equal(t, io.EOF, err)
 }

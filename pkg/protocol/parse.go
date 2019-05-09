@@ -90,7 +90,7 @@ func (r *requestReader) ReadRequest() (Request, error) {
 }
 
 type ResponseReader interface {
-	ReadResponse() (Response, error)
+	ReadResponse(bool) (Response, error)
 }
 
 func NewResponseReader(r io.Reader) ResponseReader {
@@ -103,11 +103,13 @@ type responseReader struct {
 	scanner *bufio.Scanner
 }
 
-func (r *responseReader) ReadResponse() (Response, error) {
+func (r *responseReader) ReadResponse(extendedMode bool) (Response, error) {
 	line := ""
+	count := 0
 	response := Response{}
 	for !strings.HasPrefix(line, "RPRT ") {
 		ok := r.scanner.Scan()
+		count++
 		if !ok {
 			err := r.scanner.Err()
 			if err == nil {
@@ -118,6 +120,18 @@ func (r *responseReader) ReadResponse() (Response, error) {
 		line = r.scanner.Text()
 		if strings.HasPrefix(line, "RPRT ") {
 			response.Result = strings.TrimPrefix(line, "RPRT ")
+		} else if extendedMode && count == 1 {
+			parts := strings.SplitN(line, ":", 2)
+			response.Command = CommandKey(parts[0])
+		} else if extendedMode {
+			parts := strings.Split(line, ": ")
+			if len(parts) == 2 {
+				response.Keys = append(response.Keys, parts[0])
+				response.Data = append(response.Data, parts[1])
+			} else {
+				response.Keys = append(response.Keys, "")
+				response.Data = append(response.Data, line)
+			}
 		} else {
 			response.Data = append(response.Data, line)
 		}

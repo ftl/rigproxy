@@ -55,23 +55,34 @@ func (r *Request) LongFormat() string {
 	return strings.Join(append([]string{"\\" + r.Long}, r.Args...), " ")
 }
 
+func (r *Request) ExtendedFormat() string {
+	return "+" + r.LongFormat()
+}
+
 type Response struct {
-	Data   []string
-	Result string
+	Command CommandKey
+	Data    []string
+	Keys    []string
+	Result  string
 }
 
 func (r *Response) Format() string {
-	if len(r.Data) > 0 {
-		return fmt.Sprintf("%s\nRPRT %s", strings.Join(r.Data, "\n"), r.Result)
+	if len(r.Data) == 0 || r.Result != "0" {
+		return fmt.Sprintf("RPRT %s", r.Result)
 	}
-	return fmt.Sprintf("RPRT %s", r.Result)
+	return strings.Join(r.Data, "\n")
 }
 
-func (r *Response) ExtendedFormat(separator string, keys []string) string {
+func (r *Response) ExtendedFormat(separator string) string {
 	buffer := bytes.NewBufferString("")
 
+	fmt.Fprintf(buffer, "%s:\n", r.Command)
 	for i, value := range r.Data {
-		fmt.Fprintf(buffer, "%s: %s\n", keys[i], value)
+		if r.Keys[i] != "" {
+			fmt.Fprintf(buffer, "%s: %s\n", r.Keys[i], value)
+		} else {
+			fmt.Fprintln(buffer, value)
+		}
 	}
 	fmt.Fprintf(buffer, "RPRT %s", r.Result)
 
@@ -110,12 +121,12 @@ func (t *Transceiver) start() {
 		case <-t.closed:
 			return
 		case tx := <-t.outgoing:
-			_, err := fmt.Fprintln(t.rw, tx.request.LongFormat())
+			_, err := fmt.Fprintln(t.rw, tx.request.ExtendedFormat())
 			if err != nil {
 				log.Println("transmit:", err)
 				tx.response <- txError
 			}
-			resp, err := r.ReadResponse()
+			resp, err := r.ReadResponse(tx.request.SupportsExtendedMode)
 			if err != nil {
 				log.Println("receive:", err)
 				tx.response <- rxError

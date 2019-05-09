@@ -12,19 +12,33 @@ import (
 )
 
 func TestProxyTransceiverSendReceiveRoundtrip(t *testing.T) {
-	clientBuffer := test.NewBuffer("f\nF 1234\n")
-	trxBuffer := test.NewBuffer("14074000\nRPRT 0\nRPRT 11\n")
+	proxyBuffer := test.NewBuffer("f\nF 1234\n")
+	trxBuffer := test.NewBuffer("get_freq:\n14074000\nRPRT 0\nset_freq: 1234\nRPRT 11\n")
 
 	trx := protocol.NewTransceiver(trxBuffer)
 	defer trx.Close()
 
-	proxy := New(clientBuffer, trx)
+	proxy := New(proxyBuffer, trx)
 	defer proxy.Close()
 	proxy.Wait()
 
-	trxBuffer.AssertWritten(t, "\\get_freq\n\\set_freq 1234\n")
-	clientBuffer.AssertWritten(t, "14074000\nRPRT 0\nRPRT 11\n")
-	clientBuffer.AssertClosed(t)
+	trxBuffer.AssertWritten(t, "+\\get_freq\n+\\set_freq 1234\n")
+	proxyBuffer.AssertWritten(t, "14074000\nRPRT 11\n")
+	proxyBuffer.AssertClosed(t)
+}
+
+func TestDumpState(t *testing.T) {
+	proxyBuffer := test.NewBuffer("\\dump_state\n")
+	trxBuffer := test.NewBuffer("dump_state:\n1\n2\n3\nRPRT 0\n")
+
+	trx := protocol.NewTransceiver(trxBuffer)
+	defer trx.Close()
+
+	proxy := New(proxyBuffer, trx)
+	defer proxy.Close()
+	proxy.Wait()
+
+	proxyBuffer.AssertWritten(t, "1\n2\n3\n")
 }
 
 func TestProxyInvalidatesCache(t *testing.T) {

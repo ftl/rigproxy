@@ -34,7 +34,7 @@ func TestInvalidatingCommandKeyWithSubCommand(t *testing.T) {
 }
 
 func TestTransceiverSendReceiveRoundtrip(t *testing.T) {
-	buffer := test.NewBuffer("3720000\nRPRT 0\nRPRT 11\n")
+	buffer := test.NewBuffer("get_freq:\nFrequency: 3720000\nRPRT 0\nRPRT 11\n")
 
 	trx := NewTransceiver(buffer)
 	defer trx.Close()
@@ -42,8 +42,10 @@ func TestTransceiverSendReceiveRoundtrip(t *testing.T) {
 	resp, err := trx.Send(context.Background(), Request{Command: ShortCommand("f")})
 	assert.NoError(t, err)
 	assert.Equal(t, Response{
-		Data:   []string{"3720000"},
-		Result: "0",
+		Command: CommandKey("get_freq"),
+		Data:    []string{"3720000"},
+		Keys:    []string{"Frequency"},
+		Result:  "0",
 	}, resp)
 
 	resp, err = trx.Send(context.Background(), Request{Command: ShortCommand("f")})
@@ -52,5 +54,5 @@ func TestTransceiverSendReceiveRoundtrip(t *testing.T) {
 		Result: "11",
 	}, resp)
 
-	buffer.AssertWritten(t, "\\get_freq\n\\get_freq\n")
+	buffer.AssertWritten(t, "+\\get_freq\n+\\get_freq\n")
 }

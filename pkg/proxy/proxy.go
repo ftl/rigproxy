@@ -67,7 +67,11 @@ func (p *Proxy) start() {
 
 			resp := p.handleRequest(req)
 
-			fmt.Fprintln(p.rwc, resp.Format())
+			if req.ExtendedSeparator != "" {
+				fmt.Fprintln(p.rwc, resp.ExtendedFormat(req.ExtendedSeparator))
+			} else {
+				fmt.Fprintln(p.rwc, resp.Format())
+			}
 		}
 	}
 }
