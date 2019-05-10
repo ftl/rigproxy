@@ -22,6 +22,7 @@ func subCommandKey(cmd string, sub string) CommandKey {
 type Command struct {
 	Short                string
 	Long                 string
+	Args                 int
 	InvalidatesCommand   string
 	HasSubCommand        bool
 	SupportsExtendedMode bool

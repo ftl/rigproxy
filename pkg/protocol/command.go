@@ -7,6 +7,7 @@ var (
 		{
 			Short:                "F",
 			Long:                 "set_freq",
+			Args:                 1,
 			InvalidatesCommand:   "get_freq",
 			SupportsExtendedMode: true,
 		},
@@ -19,6 +20,7 @@ var (
 		{
 			Short:                "M",
 			Long:                 "set_mode",
+			Args:                 2,
 			InvalidatesCommand:   "get_mode",
 			SupportsExtendedMode: true,
 		},
@@ -31,6 +33,7 @@ var (
 		{
 			Short:                "V",
 			Long:                 "set_vfo",
+			Args:                 1,
 			InvalidatesCommand:   "get_vfo",
 			SupportsExtendedMode: true,
 		},
@@ -43,6 +46,7 @@ var (
 		{
 			Short:                "J",
 			Long:                 "set_rit",
+			Args:                 1,
 			InvalidatesCommand:   "get_rit",
 			SupportsExtendedMode: true,
 		},
@@ -55,6 +59,7 @@ var (
 		{
 			Short:                "Z",
 			Long:                 "set_xit",
+			Args:                 1,
 			InvalidatesCommand:   "get_xit",
 			SupportsExtendedMode: true,
 		},
@@ -67,6 +72,7 @@ var (
 		{
 			Short:                "T",
 			Long:                 "set_ptt",
+			Args:                 1,
 			InvalidatesCommand:   "get_ptt",
 			SupportsExtendedMode: true,
 		},
@@ -85,6 +91,7 @@ var (
 		{
 			Short:                "R",
 			Long:                 "set_rptr_shift",
+			Args:                 1,
 			InvalidatesCommand:   "get_rptr_shift",
 			SupportsExtendedMode: true,
 		},
@@ -97,6 +104,7 @@ var (
 		{
 			Short:                "O",
 			Long:                 "set_rptr_offs",
+			Args:                 1,
 			InvalidatesCommand:   "get_rptr_offs",
 			SupportsExtendedMode: true,
 		},
@@ -109,6 +117,7 @@ var (
 		{
 			Short:                "C",
 			Long:                 "set_ctcss_tone",
+			Args:                 1,
 			InvalidatesCommand:   "get_ctcss_tone",
 			SupportsExtendedMode: true,
 		},
@@ -121,6 +130,7 @@ var (
 		{
 			Short:                "D",
 			Long:                 "set_dcs_code",
+			Args:                 1,
 			InvalidatesCommand:   "get_dcs_code",
 			SupportsExtendedMode: true,
 		},
@@ -133,6 +143,7 @@ var (
 		{
 			Short:                "\x90",
 			Long:                 "set_ctcss_sql",
+			Args:                 1,
 			InvalidatesCommand:   "get_ctcss_sql",
 			SupportsExtendedMode: true,
 		},
@@ -145,6 +156,7 @@ var (
 		{
 			Short:                "\x92",
 			Long:                 "set_dcs_sql",
+			Args:                 1,
 			InvalidatesCommand:   "get_dcs_sql",
 			SupportsExtendedMode: true,
 		},
@@ -157,6 +169,7 @@ var (
 		{
 			Short:                "I",
 			Long:                 "set_split_freq",
+			Args:                 1,
 			InvalidatesCommand:   "get_split_freq",
 			SupportsExtendedMode: true,
 		},
@@ -169,6 +182,7 @@ var (
 		{
 			Short:                "X",
 			Long:                 "set_split_mode",
+			Args:                 2,
 			InvalidatesCommand:   "get_split_mode",
 			SupportsExtendedMode: true,
 		},
@@ -181,6 +195,7 @@ var (
 		{
 			Short:                "K",
 			Long:                 "set_split_freq_mode",
+			Args:                 3,
 			InvalidatesCommand:   "get_split_freq_mode",
 			SupportsExtendedMode: true,
 		},
@@ -193,6 +208,7 @@ var (
 		{
 			Short:                "S",
 			Long:                 "set_split_vfo",
+			Args:                 1,
 			InvalidatesCommand:   "get_split_vfo",
 			SupportsExtendedMode: true,
 		},
@@ -205,6 +221,7 @@ var (
 		{
 			Short:                "N",
 			Long:                 "set_ts",
+			Args:                 1,
 			InvalidatesCommand:   "get_ts",
 			SupportsExtendedMode: true,
 		},
@@ -217,6 +234,7 @@ var (
 		{
 			Short:                "U",
 			Long:                 "set_func",
+			Args:                 2,
 			InvalidatesCommand:   "get_func",
 			HasSubCommand:        true,
 			SupportsExtendedMode: true,
@@ -224,6 +242,7 @@ var (
 		{
 			Short:                "u",
 			Long:                 "get_func",
+			Args:                 1,
 			HasSubCommand:        true,
 			Cacheable:            true,
 			SupportsExtendedMode: true,
@@ -231,6 +250,7 @@ var (
 		{
 			Short:                "L",
 			Long:                 "set_level",
+			Args:                 2,
 			InvalidatesCommand:   "get_level",
 			HasSubCommand:        true,
 			SupportsExtendedMode: true,
@@ -238,6 +258,7 @@ var (
 		{
 			Short:                "l",
 			Long:                 "get_level",
+			Args:                 1,
 			HasSubCommand:        true,
 			Cacheable:            true,
 			SupportsExtendedMode: true,
@@ -245,6 +266,7 @@ var (
 		{
 			Short:                "P",
 			Long:                 "set_parm",
+			Args:                 2,
 			InvalidatesCommand:   "get_parm",
 			HasSubCommand:        true,
 			SupportsExtendedMode: true,
@@ -252,6 +274,7 @@ var (
 		{
 			Short:                "p",
 			Long:                 "get_parm",
+			Args:                 1,
 			HasSubCommand:        true,
 			Cacheable:            true,
 			SupportsExtendedMode: true,
@@ -259,11 +282,13 @@ var (
 		{
 			Short:                "B",
 			Long:                 "set_bank",
+			Args:                 1,
 			SupportsExtendedMode: true,
 		},
 		{
 			Short:                "E",
 			Long:                 "set_mem",
+			Args:                 1,
 			InvalidatesCommand:   "get_mem",
 			SupportsExtendedMode: true,
 		},
@@ -276,15 +301,18 @@ var (
 		{
 			Short:                "G",
 			Long:                 "vfo_op",
+			Args:                 1,
 			SupportsExtendedMode: true,
 		},
 		{
 			Short: "g",
 			Long:  "scan",
+			Args:  2,
 		},
 		{
 			Short:              "H",
 			Long:               "set_channel",
+			Args:               1,
 			InvalidatesCommand: "get_channel",
 		},
 		{
@@ -295,6 +323,7 @@ var (
 		{
 			Short:                "A",
 			Long:                 "set_trn",
+			Args:                 1,
 			InvalidatesCommand:   "get_trn",
 			SupportsExtendedMode: true,
 		},
@@ -319,10 +348,12 @@ var (
 		{
 			Short: "*",
 			Long:  "reset",
+			Args:  1,
 		},
 		{
 			Short:              "\x87",
 			Long:               "set_powerstat",
+			Args:               1,
 			InvalidatesCommand: "get_powerstat",
 		},
 		{
@@ -333,6 +364,7 @@ var (
 		{
 			Short: "\x89",
 			Long:  "send_dtmf",
+			Args:  1,
 		},
 		{
 			Short: "\x8a",
@@ -341,10 +373,12 @@ var (
 		{
 			Short: "b",
 			Long:  "send_morse",
+			Args:  1,
 		},
 		{
 			Short: "w",
 			Long:  "send_cmd",
+			Args:  2,
 		},
 		{
 			Short:     "_",
@@ -366,11 +400,13 @@ var (
 		{
 			Short:                "2",
 			Long:                 "power2mW",
+			Args:                 3,
 			SupportsExtendedMode: true,
 		},
 		{
 			Short:                "4",
 			Long:                 "mW2power",
+			Args:                 3,
 			SupportsExtendedMode: true,
 		},
 		{
@@ -390,6 +426,7 @@ var (
 		{
 			Short:                "\x8c",
 			Long:                 "pause",
+			Args:                 1,
 			SupportsExtendedMode: true,
 		},
 	}

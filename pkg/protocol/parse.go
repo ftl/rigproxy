@@ -2,8 +2,10 @@ package protocol
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 	"strings"
+	"unicode"
 
 	"github.com/pkg/errors"
 )
@@ -70,23 +72,178 @@ func NewRequestReader(r io.Reader) RequestReader {
 }
 
 type requestReader struct {
-	scanner *bufio.Scanner
+	scanner     *bufio.Scanner
+	currentLine *bytes.Buffer
 }
 
 func (r *requestReader) ReadRequest() (Request, error) {
-	line := "#"
-	for strings.HasPrefix(line, "#") {
-		ok := r.scanner.Scan()
-		if !ok {
-			err := r.scanner.Err()
-			if err == nil {
-				return Request{}, io.EOF
+	for {
+		if r.currentLine == nil || r.currentLine.Len() == 0 {
+			line, err := r.nextLine()
+			if err != nil {
+				return Request{}, err
 			}
-			return Request{}, err
+			r.currentLine = bytes.NewBufferString(line)
 		}
-		line = r.scanner.Text()
+
+		req, err := nextRequest(r.currentLine)
+		if err == io.EOF {
+			continue
+		}
+		return req, err
 	}
-	return ParseRequest(line)
+}
+
+func (r *requestReader) nextLine() (string, error) {
+	ok := r.scanner.Scan()
+	if !ok {
+		err := r.scanner.Err()
+		if err == nil {
+			return "", io.EOF
+		}
+		return "", err
+	}
+	return r.scanner.Text(), nil
+}
+
+func nextRequest(r io.Reader) (Request, error) {
+	c := make([]byte, 1)
+	var cmd Command
+loop:
+	for {
+		n, err := r.Read(c)
+		if n != 1 {
+			return Request{}, io.EOF
+		}
+		if err != nil {
+			return Request{}, errors.Wrap(err, "parse request")
+		}
+
+		switch c[0] {
+		case '#':
+			err := skipLine(r)
+			if err != nil {
+				return Request{}, err
+			}
+		case '+':
+			req, err := nextRequest(r)
+			if err == nil && req.Command.SupportsExtendedMode {
+				req.ExtendedSeparator = "\n"
+			}
+			return req, err
+		case ';', ',', '|':
+			req, err := nextRequest(r)
+			if err == nil && req.Command.SupportsExtendedMode {
+				req.ExtendedSeparator = string(c[0])
+			}
+			return req, err
+		case '\\':
+			var err error
+			cmd, err = readLongCommand(r)
+			if err != nil {
+				return Request{}, err
+			}
+			break loop
+		default:
+			if unicode.IsSpace(rune(c[0])) {
+				continue
+			}
+			var ok bool
+			cmd, ok = ShortCommands[string(c[0])]
+			if !ok {
+				return Request{}, errors.Errorf("unknown short command %s", string(c[0]))
+			}
+			break loop
+		}
+	}
+
+	req := Request{
+		Command: cmd,
+	}
+
+	args, err := readArgs(r, cmd.Args)
+	if err != nil {
+		return Request{}, err
+	}
+	req.Args = args
+
+	return req, nil
+}
+
+func skipLine(r io.Reader) error {
+	c := make([]byte, 1)
+	for {
+		n, err := r.Read(c)
+		if n != 1 || err == io.EOF {
+			return io.EOF
+		}
+		if err != nil {
+			return err
+		}
+		if c[0] == '\n' {
+			return nil
+		}
+	}
+}
+
+func readWord(r io.Reader) (string, error) {
+	c := make([]byte, 1)
+	word := ""
+	for {
+		n, err := r.Read(c)
+		if n != 1 || err == io.EOF {
+			break
+		}
+		if err != nil {
+			return "", errors.Wrap(err, "read word")
+		}
+		if unicode.IsSpace(rune(c[0])) {
+			if len(word) > 0 {
+				break
+			} else {
+				continue
+			}
+		}
+		word += string(c[0])
+	}
+
+	if len(word) == 0 {
+		return "", io.EOF
+	}
+
+	return word, nil
+}
+
+func readLongCommand(r io.Reader) (Command, error) {
+	name, err := readWord(r)
+	if err != nil {
+		return Command{}, err
+	}
+
+	cmd, ok := LongCommands[name]
+	if !ok {
+		return Command{}, errors.Errorf("unknown long command %s", name)
+	}
+	return cmd, nil
+}
+
+func readArgs(r io.Reader, count int) ([]string, error) {
+	if count == 0 {
+		return nil, nil
+	}
+
+	args := make([]string, 0, count)
+	for {
+		if len(args) == count {
+			return args, nil
+		}
+
+		arg, err := readWord(r)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, arg)
+	}
 }
 
 type ResponseReader interface {
