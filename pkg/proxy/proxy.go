@@ -78,6 +78,17 @@ func (p *Proxy) start() {
 
 func (p *Proxy) handleRequest(req protocol.Request) protocol.Response {
 	log.Println(">", req.LongFormat())
+
+	if req.Key() == protocol.CommandKey("chk_vfo") {
+		log.Println("<", "CHKVFO 0")
+		return protocol.Response{
+			Command: protocol.CommandKey("chk_vfo"),
+			Data:    []string{"CHKVFO 0"},
+			Keys:    []string{""},
+			Result:  "0",
+		}
+	}
+
 	if req.InvalidatesCommand != "" {
 		p.cache.Invalidate(req.InvalidatedKey())
 	}
