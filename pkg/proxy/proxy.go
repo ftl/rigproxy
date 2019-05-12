@@ -36,7 +36,7 @@ func NewCached(rwc io.ReadWriteCloser, trx Transceiver, cache Cache) *Proxy {
 	result := Proxy{
 		rwc:    rwc,
 		trx:    trx,
-		cache:  new(nopCache),
+		cache:  cache,
 		closed: make(chan struct{}),
 	}
 
