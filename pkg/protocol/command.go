@@ -208,7 +208,7 @@ var (
 		{
 			Short:                "S",
 			Long:                 "set_split_vfo",
-			Args:                 1,
+			Args:                 2,
 			InvalidatesCommand:   "get_split_vfo",
 			SupportsExtendedMode: true,
 		},

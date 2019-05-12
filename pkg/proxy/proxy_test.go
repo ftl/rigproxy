@@ -27,18 +27,30 @@ func TestProxyTransceiverSendReceiveRoundtrip(t *testing.T) {
 	proxyBuffer.AssertClosed(t)
 }
 
-func TestDumpState(t *testing.T) {
-	proxyBuffer := test.NewBuffer("\\dump_state\n")
-	trxBuffer := test.NewBuffer("dump_state:\n1\n2\n3\nRPRT 0\n")
+func TestCommands(t *testing.T) {
+	testCases := []struct {
+		desc     string
+		proxy    string
+		trx      string
+		expected string
+	}{
+		{"dump_state", "\\dump_state\n", "dump_state:\n1\n2\n3\nRPRT 0\n", "1\n2\n3\n"},
+		{"chk_vfo", "\\chk_vfo\n", "CHKVFO 0\n", "CHKVFO 0\n"},
+		{"set_split_vfo short", "S 1 VFOB\n", "set_split_vfo: 1 VFOB\nRPRT 0\n", "RPRT 0\n"},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			trx := protocol.NewTransceiver(test.NewBuffer(tC.trx))
+			defer trx.Close()
 
-	trx := protocol.NewTransceiver(trxBuffer)
-	defer trx.Close()
+			proxyBuffer := test.NewBuffer(tC.proxy)
+			proxy := New(proxyBuffer, trx)
+			defer proxy.Close()
+			proxy.Wait()
 
-	proxy := New(proxyBuffer, trx)
-	defer proxy.Close()
-	proxy.Wait()
-
-	proxyBuffer.AssertWritten(t, "1\n2\n3\n")
+			proxyBuffer.AssertWritten(t, tC.expected)
+		})
+	}
 }
 
 func TestProxyInvalidatesCache(t *testing.T) {
