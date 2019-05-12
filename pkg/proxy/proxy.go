@@ -49,7 +49,7 @@ func NewCached(rwc io.ReadWriteCloser, trx Transceiver, cache Cache, done <-chan
 	go func() {
 		select {
 		case <-done:
-			close(result.closed)
+			result.Close()
 			rwc.Close()
 		case <-result.closed:
 			rwc.Close()
@@ -66,19 +66,19 @@ func (p *Proxy) start() {
 		req, err := r.ReadRequest()
 		if err == io.EOF {
 			log.Println("eof:", err)
-			close(p.closed)
+			p.Close()
 			return
 		}
 		if err != nil {
 			log.Println("proxy:", err)
-			close(p.closed)
+			p.Close()
 			return
 		}
 
 		resp, err := p.handleRequest(req)
 		if err != nil {
 			log.Println("request:", err)
-			close(p.closed)
+			p.Close()
 			return
 		}
 

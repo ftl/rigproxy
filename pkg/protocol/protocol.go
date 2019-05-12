@@ -168,3 +168,10 @@ func (t *Transceiver) Close() {
 		close(t.closed)
 	}
 }
+
+func (t *Transceiver) WhenDone(f func()) {
+	go func() {
+		<-t.closed
+		f()
+	}()
+}
