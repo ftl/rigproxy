@@ -10,57 +10,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-func ParseRequest(s string) (Request, error) {
-	parts := strings.Split(s, " ")
-	if len(parts) == 0 || parts[0] == "" {
-		return Request{}, errors.New("empty")
-	}
-
-	cmd, extendedSeparator, err := findCommand(parts[0])
-	if err != nil {
-		return Request{}, err
-	}
-
-	return Request{Command: cmd, ExtendedSeparator: extendedSeparator, Args: parts[1:]}, nil
-}
-
-func findCommand(name string) (cmd Command, extendedSeparator string, err error) {
-	if name == "" {
-		return Command{}, "", errors.New("empty command")
-	}
-
-	var ok bool
-	switch name[0] {
-	case '\\':
-		cmd, ok = LongCommands[string(name[1:])]
-	case '+':
-		cmd, _, err = findCommand(name[1:])
-		if cmd.SupportsExtendedMode {
-			extendedSeparator = "\n"
-		}
-		ok = err == nil
-	case ';', ',', '|':
-		cmd, _, err = findCommand(name[1:])
-		if cmd.SupportsExtendedMode {
-			extendedSeparator = string(name[0])
-		}
-		ok = err == nil
-	default:
-		if len(name) > 1 {
-			return Command{}, "", errors.Errorf("unknown command: %s", name)
-		}
-		cmd, ok = ShortCommands[name]
-	}
-	if err != nil {
-		return Command{}, "", err
-	}
-
-	if !ok {
-		return Command{}, "", errors.Errorf("unknown command: %s", name)
-	}
-	return cmd, extendedSeparator, nil
-}
-
 type RequestReader interface {
 	ReadRequest() (Request, error)
 }

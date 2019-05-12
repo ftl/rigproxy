@@ -27,6 +27,7 @@ func main() {
 	}
 	defer out.Close()
 	trx := protocol.NewTransceiver(out)
+
 	cache := cache.NewWithLifetime(*lifetime)
 
 	l, err := net.Listen("tcp", *listen)
@@ -41,6 +42,6 @@ func main() {
 			log.Fatal(err)
 		}
 
-		go proxy.NewCached(conn, trx, cache)
+		go proxy.NewCached(conn, trx, cache, nil)
 	}
 }

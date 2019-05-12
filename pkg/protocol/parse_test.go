@@ -11,36 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestParseRequest(t *testing.T) {
-	testCases := []struct {
-		desc     string
-		value    string
-		valid    bool
-		expected Request
-	}{
-		{"read frequency short", "f", true, Request{Command: ShortCommand("f"), Args: []string{}}},
-		{"read frequency long", "\\get_freq", true, Request{Command: LongCommand("get_freq"), Args: []string{}}},
-		{"read frequency extended short", "+f", true, Request{Command: ShortCommand("f"), ExtendedSeparator: "\n", Args: []string{}}},
-		{"write frequency short", "F 14074000", true, Request{Command: ShortCommand("F"), Args: []string{"14074000"}}},
-		{"write frequency long", "\\set_freq 3720000", true, Request{Command: LongCommand("set_freq"), Args: []string{"3720000"}}},
-		{"write frequency long extended", ";\\set_freq 3720000", true, Request{Command: LongCommand("set_freq"), ExtendedSeparator: ";", Args: []string{"3720000"}}},
-		{"get functions short", "u ?", true, Request{Command: ShortCommand("u"), Args: []string{"?"}}},
-		{"get functions long", "\\get_func ?", true, Request{Command: LongCommand("get_func"), Args: []string{"?"}}},
-		{"get functions extended long", ",\\get_func ?", true, Request{Command: LongCommand("get_func"), ExtendedSeparator: ",", Args: []string{"?"}}},
-	}
-	for _, tC := range testCases {
-		t.Run(tC.desc, func(t *testing.T) {
-			actual, err := ParseRequest(tC.value)
-			if tC.valid {
-				assert.NoError(t, err)
-				assert.Equal(t, tC.expected, actual)
-			} else {
-				assert.Error(t, err)
-			}
-		})
-	}
-}
-
 func TestRequestReader(t *testing.T) {
 	buffer := bytes.NewBufferString(`# A comment before the command
 F 14074000

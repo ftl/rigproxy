@@ -26,13 +26,18 @@ type Cache interface {
 	Invalidate(protocol.CommandKey)
 }
 
-var ServerError = protocol.Response{Result: "500"}
-
-func New(rwc io.ReadWriteCloser, trx Transceiver) *Proxy {
-	return NewCached(rwc, trx, new(nopCache))
+var ChkVfoResponse = protocol.Response{
+	Command: protocol.CommandKey("chk_vfo"),
+	Data:    []string{"CHKVFO 0"},
+	Keys:    []string{""},
+	Result:  "0",
 }
 
-func NewCached(rwc io.ReadWriteCloser, trx Transceiver, cache Cache) *Proxy {
+func New(rwc io.ReadWriteCloser, trx Transceiver, done <-chan struct{}) *Proxy {
+	return NewCached(rwc, trx, new(nopCache), done)
+}
+
+func NewCached(rwc io.ReadWriteCloser, trx Transceiver, cache Cache, done <-chan struct{}) *Proxy {
 	result := Proxy{
 		rwc:    rwc,
 		trx:    trx,
@@ -41,6 +46,15 @@ func NewCached(rwc io.ReadWriteCloser, trx Transceiver, cache Cache) *Proxy {
 	}
 
 	go result.start()
+	go func() {
+		select {
+		case <-done:
+			close(result.closed)
+			rwc.Close()
+		case <-result.closed:
+			rwc.Close()
+		}
+	}()
 
 	return &result
 }
@@ -49,44 +63,39 @@ func (p *Proxy) start() {
 	defer p.rwc.Close()
 	r := protocol.NewRequestReader(p.rwc)
 	for {
-		select {
-		case <-p.closed:
+		req, err := r.ReadRequest()
+		if err == io.EOF {
+			log.Println("eof:", err)
+			close(p.closed)
 			return
-		default:
-			req, err := r.ReadRequest()
-			if err == io.EOF {
-				log.Println("eof:", err)
-				close(p.closed)
-				return
-			}
-			if err != nil {
-				log.Println("proxy:", err)
-				close(p.closed)
-				return
-			}
+		}
+		if err != nil {
+			log.Println("proxy:", err)
+			close(p.closed)
+			return
+		}
 
-			resp := p.handleRequest(req)
+		resp, err := p.handleRequest(req)
+		if err != nil {
+			log.Println("request:", err)
+			close(p.closed)
+			return
+		}
 
-			if req.ExtendedSeparator != "" {
-				fmt.Fprintln(p.rwc, resp.ExtendedFormat(req.ExtendedSeparator))
-			} else {
-				fmt.Fprintln(p.rwc, resp.Format())
-			}
+		if req.ExtendedSeparator != "" {
+			fmt.Fprintln(p.rwc, resp.ExtendedFormat(req.ExtendedSeparator))
+		} else {
+			fmt.Fprintln(p.rwc, resp.Format())
 		}
 	}
 }
 
-func (p *Proxy) handleRequest(req protocol.Request) protocol.Response {
+func (p *Proxy) handleRequest(req protocol.Request) (protocol.Response, error) {
 	log.Println(">", req.LongFormat())
 
 	if req.Key() == protocol.CommandKey("chk_vfo") {
 		log.Println("<", "CHKVFO 0")
-		return protocol.Response{
-			Command: protocol.CommandKey("chk_vfo"),
-			Data:    []string{"CHKVFO 0"},
-			Keys:    []string{""},
-			Result:  "0",
-		}
+		return ChkVfoResponse, nil
 	}
 
 	if req.InvalidatesCommand != "" {
@@ -97,14 +106,13 @@ func (p *Proxy) handleRequest(req protocol.Request) protocol.Response {
 		resp, ok := p.cache.Get(req.Key())
 		if ok {
 			log.Println("c", resp.Format())
-			return resp
+			return resp, nil
 		}
 	}
 
 	resp, err := p.trx.Send(context.Background(), req)
 	if err != nil {
-		log.Println("request:", err)
-		return ServerError
+		return protocol.Response{}, err
 	}
 
 	if req.Cacheable {
@@ -112,7 +120,7 @@ func (p *Proxy) handleRequest(req protocol.Request) protocol.Response {
 	}
 
 	log.Println("<", resp.Format())
-	return resp
+	return resp, nil
 }
 
 func (p *Proxy) Close() {

@@ -2,7 +2,10 @@ package proxy
 
 import (
 	"context"
+	"errors"
+	"io"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -18,7 +21,7 @@ func TestProxyTransceiverSendReceiveRoundtrip(t *testing.T) {
 	trx := protocol.NewTransceiver(trxBuffer)
 	defer trx.Close()
 
-	proxy := New(proxyBuffer, trx)
+	proxy := New(proxyBuffer, trx, nil)
 	defer proxy.Close()
 	proxy.Wait()
 
@@ -44,13 +47,37 @@ func TestCommands(t *testing.T) {
 			defer trx.Close()
 
 			proxyBuffer := test.NewBuffer(tC.proxy)
-			proxy := New(proxyBuffer, trx)
+			proxy := New(proxyBuffer, trx, nil)
 			defer proxy.Close()
 			proxy.Wait()
 
 			proxyBuffer.AssertWritten(t, tC.expected)
 		})
 	}
+}
+
+func TestProxyStopsWhenDone(t *testing.T) {
+	done := make(chan struct{})
+	bytes := make(chan byte)
+	r := newChannelReader(bytes)
+
+	proxy := New(r, nil, done)
+
+	go func() {
+		<-time.After(10 * time.Millisecond)
+		close(done)
+	}()
+
+	<-done
+	proxy.Wait()
+
+}
+func TestProxyStopsWhenReceiveFails(t *testing.T) {
+	trx := new(mockTransceiver)
+	trx.On("Send", mock.Anything, mock.Anything).Once().Return(protocol.Response{}, errors.New("fail"))
+	proxy := New(test.NewBuffer("f\n"), trx, nil)
+
+	proxy.Wait()
 }
 
 func TestProxyInvalidatesCache(t *testing.T) {
@@ -84,13 +111,14 @@ func TestProxyUsesCache(t *testing.T) {
 
 	cache.On("Get", cachedCommand).Once().Return(resp, true)
 
-	actual := proxy.handleRequest(protocol.Request{
+	actual, err := proxy.handleRequest(protocol.Request{
 		Command: protocol.Command{
 			Long:      string(cachedCommand),
 			Cacheable: true,
 		},
 	})
 
+	assert.NoError(t, err)
 	assert.Equal(t, resp, actual)
 	cache.AssertExpectations(t)
 }
@@ -146,4 +174,37 @@ type mockTransceiver struct {
 func (m *mockTransceiver) Send(ctx context.Context, req protocol.Request) (protocol.Response, error) {
 	args := m.Called(ctx, req)
 	return args.Get(0).(protocol.Response), args.Error(1)
+}
+
+type channelReader struct {
+	bytes <-chan byte
+	done  chan struct{}
+}
+
+func newChannelReader(bytes chan byte) *channelReader {
+	return &channelReader{bytes, make(chan struct{})}
+}
+
+func (r *channelReader) Read(p []byte) (int, error) {
+	if len(p) == 0 {
+		return 0, io.EOF
+	}
+	select {
+	case <-r.done:
+		return 0, io.EOF
+	case b := <-r.bytes:
+		p[0] = b
+		return 1, nil
+	}
+}
+
+func (r *channelReader) Write(p []byte) (int, error) {
+	return 0, nil
+}
+
+func (r *channelReader) Close() error {
+	if _, ok := <-r.done; !ok {
+		close(r.done)
+	}
+	return nil
 }

@@ -116,6 +116,7 @@ func NewTransceiver(rw io.ReadWriter) *Transceiver {
 func (t *Transceiver) start() {
 	txError := Response{Result: "501"}
 	rxError := Response{Result: "502"}
+	connectionClosed := Response{Result: "503"}
 	r := NewResponseReader(t.rw)
 	for {
 		select {
@@ -128,7 +129,12 @@ func (t *Transceiver) start() {
 				tx.response <- txError
 			}
 			resp, err := r.ReadResponse(tx.request.SupportsExtendedMode)
-			if err != nil {
+			if err == io.EOF {
+				log.Println("receive: connection closed")
+				tx.response <- connectionClosed
+				close(t.closed)
+				return
+			} else if err != nil {
 				log.Println("receive:", err)
 				tx.response <- rxError
 			} else {
