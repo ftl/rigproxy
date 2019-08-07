@@ -7,6 +7,7 @@ import (
 	"testing"
 	"unicode"
 
+	"github.com/ftl/rigproxy/pkg/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -109,9 +110,9 @@ func TestReadLongCommand(t *testing.T) {
 }
 
 func TestResponseReader(t *testing.T) {
-	buffer := bytes.NewBufferString("USB\n2400\nRPRT 0\nget_freq:\nFrequency: 145000000\nRPRT 0\nRPRT 11\n")
+	buffer := test.NewBuffer("USB\n2400\nRPRT 0\nget_freq:\nFrequency: 145000000\nRPRT 0\nRPRT 11\n")
 
-	reader := NewResponseReader(buffer)
+	reader := NewResponseReader(buffer, 0)
 
 	resp, err := reader.ReadResponse(false)
 	require.NoError(t, err)

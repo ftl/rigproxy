@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	"io"
+	"net"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/pkg/errors"
@@ -199,14 +201,18 @@ type ResponseReader interface {
 	ReadResponse(bool) (Response, error)
 }
 
-func NewResponseReader(r io.Reader) ResponseReader {
+func NewResponseReader(conn net.Conn, timeout time.Duration) ResponseReader {
 	return &responseReader{
-		scanner: bufio.NewScanner(r),
+		conn:    conn,
+		scanner: bufio.NewScanner(conn),
+		timeout: timeout,
 	}
 }
 
 type responseReader struct {
+	conn    net.Conn
 	scanner *bufio.Scanner
+	timeout time.Duration
 }
 
 func (r *responseReader) ReadResponse(extendedMode bool) (Response, error) {
@@ -214,10 +220,12 @@ func (r *responseReader) ReadResponse(extendedMode bool) (Response, error) {
 	count := 0
 	response := Response{}
 	for !strings.HasPrefix(line, "RPRT ") {
+		r.conn.SetReadDeadline(time.Now().Add(r.timeout))
 		ok := r.scanner.Scan()
 		count++
 		if !ok {
 			err := r.scanner.Err()
+			r.scanner = bufio.NewScanner(r.conn)
 			if err == nil {
 				return Response{}, io.EOF
 			}

@@ -2,8 +2,10 @@ package test
 
 import (
 	"bytes"
+	"net"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -35,6 +37,26 @@ func (b *ReadWriteCloseBuffer) Close() error {
 	b.closingLock.Lock()
 	defer b.closingLock.Unlock()
 	b.closed = true
+	return nil
+}
+
+func (b *ReadWriteCloseBuffer) LocalAddr() net.Addr {
+	return nil
+}
+
+func (b *ReadWriteCloseBuffer) RemoteAddr() net.Addr {
+	return nil
+}
+
+func (b *ReadWriteCloseBuffer) SetDeadline(time.Time) error {
+	return nil
+}
+
+func (b *ReadWriteCloseBuffer) SetReadDeadline(time.Time) error {
+	return nil
+}
+
+func (b *ReadWriteCloseBuffer) SetWriteDeadline(time.Time) error {
 	return nil
 }
 

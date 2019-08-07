@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -91,9 +93,10 @@ func (r *Response) ExtendedFormat(separator string) string {
 }
 
 type Transceiver struct {
-	rw       io.ReadWriter
+	conn     net.Conn
 	outgoing chan transmission
 	closed   chan struct{}
+	timeout  time.Duration
 }
 
 type transmission struct {
@@ -101,11 +104,12 @@ type transmission struct {
 	response chan Response
 }
 
-func NewTransceiver(rw io.ReadWriter) *Transceiver {
+func NewTransceiver(conn net.Conn) *Transceiver {
 	result := Transceiver{
-		rw:       rw,
-		outgoing: make(chan transmission, 20),
+		conn:     conn,
+		outgoing: make(chan transmission),
 		closed:   make(chan struct{}),
+		timeout:  500 * time.Millisecond,
 	}
 
 	go result.start()
@@ -117,13 +121,13 @@ func (t *Transceiver) start() {
 	txError := Response{Result: "501"}
 	rxError := Response{Result: "502"}
 	connectionClosed := Response{Result: "503"}
-	r := NewResponseReader(t.rw)
+	r := NewResponseReader(t.conn, t.timeout)
 	for {
 		select {
 		case <-t.closed:
 			return
 		case tx := <-t.outgoing:
-			_, err := fmt.Fprintln(t.rw, tx.request.ExtendedFormat())
+			_, err := fmt.Fprintln(t.conn, tx.request.ExtendedFormat())
 			if err != nil {
 				log.Println("transmit:", err)
 				tx.response <- txError
@@ -151,12 +155,8 @@ func (t *Transceiver) Send(ctx context.Context, req Request) (Response, error) {
 	default:
 		tx := transmission{request: req, response: make(chan Response)}
 		t.outgoing <- tx
-		select {
-		case <-ctx.Done():
-			return Response{}, ctx.Err()
-		case resp := <-tx.response:
-			return resp, nil
-		}
+		resp := <-tx.response
+		return resp, nil
 	}
 }
 
