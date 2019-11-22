@@ -20,7 +20,7 @@ func subCommandKey(cmd string, sub string) CommandKey {
 }
 
 type Command struct {
-	Short                string
+	Short                byte
 	Long                 string
 	Args                 int
 	InvalidatesCommand   string

@@ -98,9 +98,9 @@ loop:
 				continue
 			}
 			var ok bool
-			cmd, ok = ShortCommands[string(c[0])]
+			cmd, ok = ShortCommands[c[0]]
 			if !ok {
-				return Request{}, errors.Errorf("unknown short command %s", string(c[0]))
+				return Request{}, errors.Errorf("unknown short command %s (0x%x)", string(c[0]), c[0])
 			}
 			break loop
 		}

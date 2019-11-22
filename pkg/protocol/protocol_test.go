@@ -10,25 +10,25 @@ import (
 )
 
 func TestSimpleCommandKey(t *testing.T) {
-	cmd := Command{Short: "a", Long: "get_a"}
+	cmd := Command{Short: 'a', Long: "get_a"}
 	req := Request{Command: cmd}
 	assert.Equal(t, CommandKey("get_a"), req.Key())
 }
 
 func TestCommandKeyWithSubCommand(t *testing.T) {
-	cmd := Command{Short: "b", Long: "get_b", HasSubCommand: true}
+	cmd := Command{Short: 'b', Long: "get_b", HasSubCommand: true}
 	req := Request{Command: cmd, Args: []string{"first"}}
 	assert.Equal(t, CommandKey("get_b_first"), req.Key())
 }
 
 func TestInvalidatingCommandKey(t *testing.T) {
-	cmd := Command{Short: "c", Long: "set_c", InvalidatesCommand: "get_c"}
+	cmd := Command{Short: 'c', Long: "set_c", InvalidatesCommand: "get_c"}
 	req := Request{Command: cmd}
 	assert.Equal(t, CommandKey("get_c"), req.InvalidatedKey())
 }
 
 func TestInvalidatingCommandKeyWithSubCommand(t *testing.T) {
-	cmd := Command{Short: "d", Long: "set_d", InvalidatesCommand: "get_d", HasSubCommand: true}
+	cmd := Command{Short: 'd', Long: "set_d", InvalidatesCommand: "get_d", HasSubCommand: true}
 	req := Request{Command: cmd, Args: []string{"first"}}
 	assert.Equal(t, CommandKey("get_d_first"), req.InvalidatedKey())
 }
