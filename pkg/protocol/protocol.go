@@ -99,6 +99,7 @@ type Transceiver struct {
 type transmission struct {
 	request  Request
 	response chan Response
+	err      chan error
 }
 
 func NewTransceiver(rw io.ReadWriter) *Transceiver {
@@ -114,9 +115,6 @@ func NewTransceiver(rw io.ReadWriter) *Transceiver {
 }
 
 func (t *Transceiver) start() {
-	txError := Response{Result: "501"}
-	rxError := Response{Result: "502"}
-	connectionClosed := Response{Result: "503"}
 	r := NewResponseReader(t.rw)
 	for {
 		select {
@@ -126,17 +124,17 @@ func (t *Transceiver) start() {
 			_, err := fmt.Fprintln(t.rw, tx.request.ExtendedFormat())
 			if err != nil {
 				log.Println("transmit:", err)
-				tx.response <- txError
+				tx.err <- fmt.Errorf("transmission of request failed: %w", err)
 			}
 			resp, err := r.ReadResponse(tx.request.SupportsExtendedMode)
 			if err == io.EOF {
 				log.Println("receive: connection closed")
-				tx.response <- connectionClosed
+				tx.err <- fmt.Errorf("connection closed while waiting for response: %w", err)
 				close(t.closed)
 				return
 			} else if err != nil {
 				log.Println("receive:", err)
-				tx.response <- rxError
+				tx.err <- fmt.Errorf("receiving of response failed: %w", err)
 			} else {
 				tx.response <- resp
 			}
@@ -149,11 +147,13 @@ func (t *Transceiver) Send(ctx context.Context, req Request) (Response, error) {
 	case <-t.closed:
 		return Response{}, errors.New("transceiver already closed")
 	default:
-		tx := transmission{request: req, response: make(chan Response)}
+		tx := transmission{request: req, response: make(chan Response), err: make(chan error)}
 		t.outgoing <- tx
 		select {
 		case <-ctx.Done():
 			return Response{}, ctx.Err()
+		case err := <-tx.err:
+			return Response{}, err
 		case resp := <-tx.response:
 			return resp, nil
 		}
