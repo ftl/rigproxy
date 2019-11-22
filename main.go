@@ -18,9 +18,9 @@ var (
 	destination = flag.StringP("destination", "d", "localhost:4534", "<host:port> of the destination rigctld server (default: localhost:4534)")
 	listen      = flag.StringP("listen", "l", ":4532", "listening address of this proxy (default: :4532)")
 	lifetime    = flag.DurationP("lifetime", "L", 200*time.Millisecond, "the lifetime of responses in the cache (default: 200ms)")
-	timeout     = flag.DurationP("timeout", "r", 10*time.Second, "the timeout for network requests")
+	timeout     = flag.DurationP("timeout", "t", 10*time.Second, "the timeout for network requests")
 	retry       = flag.DurationP("retry", "r", 10*time.Second, "the retry interval")
-	test        = flag.BoolP("test", "t", false, "run test code")
+	test        = flag.BoolP("test", "T", false, "run test code")
 )
 
 func main() {
