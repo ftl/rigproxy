@@ -136,7 +136,11 @@ func (t *Transceiver) start() {
 				log.Println("receive:", err)
 				tx.err <- fmt.Errorf("receiving of response failed: %w", err)
 			} else {
-				tx.response <- resp
+				select {
+				case tx.response <- resp:
+				default:
+					log.Print("could not queue response to transmission, nobody is listening")
+				}
 			}
 		}
 	}
@@ -147,16 +151,17 @@ func (t *Transceiver) Send(ctx context.Context, req Request) (Response, error) {
 	case <-t.closed:
 		return Response{}, errors.New("transceiver already closed")
 	default:
-		tx := transmission{request: req, response: make(chan Response), err: make(chan error)}
-		t.outgoing <- tx
-		select {
-		case <-ctx.Done():
-			return Response{}, ctx.Err()
-		case err := <-tx.err:
-			return Response{}, err
-		case resp := <-tx.response:
-			return resp, nil
-		}
+	}
+
+	tx := transmission{request: req, response: make(chan Response), err: make(chan error)}
+	t.outgoing <- tx
+	select {
+	case <-ctx.Done():
+		return Response{}, ctx.Err()
+	case err := <-tx.err:
+		return Response{}, err
+	case resp := <-tx.response:
+		return resp, nil
 	}
 }
 
