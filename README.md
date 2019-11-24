@@ -18,6 +18,13 @@ For example:
 rigproxy -d localhost:4534 -l :4532 -L 200ms
 ```
 
+## Development
+
+To use your local copy of rigproxy in other projects, put the following into the go.mod file of your project:
+
+```
+replace github.com/ftl/rigproxy => <path_to_your_local_copy>
+```
 
 ## Disclaimer
 I develop this tool for myself and just for fun in my free time. If you find it useful, I'm happy to hear about that. If you have trouble using it, you have all the source code to fix the problem yourself (although pull requests are welcome).
