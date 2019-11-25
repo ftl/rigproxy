@@ -2,13 +2,8 @@ package protocol
 
 import (
 	"bytes"
-	"context"
 	"fmt"
-	"io"
-	"log"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 type CommandKey string
@@ -88,95 +83,4 @@ func (r *Response) ExtendedFormat(separator string) string {
 	fmt.Fprintf(buffer, "RPRT %s", r.Result)
 
 	return buffer.String()
-}
-
-type Transceiver struct {
-	rw       io.ReadWriter
-	outgoing chan transmission
-	closed   chan struct{}
-}
-
-type transmission struct {
-	request  Request
-	response chan Response
-	err      chan error
-}
-
-func NewTransceiver(rw io.ReadWriter) *Transceiver {
-	result := Transceiver{
-		rw:       rw,
-		outgoing: make(chan transmission),
-		closed:   make(chan struct{}),
-	}
-
-	go result.start()
-
-	return &result
-}
-
-func (t *Transceiver) start() {
-	r := NewResponseReader(t.rw)
-	for {
-		select {
-		case <-t.closed:
-			return
-		case tx := <-t.outgoing:
-			_, err := fmt.Fprintln(t.rw, tx.request.ExtendedFormat())
-			if err != nil {
-				log.Println("transmit:", err)
-				tx.err <- fmt.Errorf("transmission of request failed: %w", err)
-			}
-			resp, err := r.ReadResponse(tx.request.SupportsExtendedMode)
-			if err == io.EOF {
-				log.Println("receive: connection closed")
-				tx.err <- fmt.Errorf("connection closed while waiting for response: %w", err)
-				close(t.closed)
-				return
-			} else if err != nil {
-				log.Println("receive:", err)
-				tx.err <- fmt.Errorf("receiving of response failed: %w", err)
-			} else {
-				select {
-				case tx.response <- resp:
-				default:
-					log.Print("could not queue response to transmission, nobody is listening")
-				}
-			}
-		}
-	}
-}
-
-func (t *Transceiver) Send(ctx context.Context, req Request) (Response, error) {
-	select {
-	case <-t.closed:
-		return Response{}, errors.New("transceiver already closed")
-	default:
-	}
-
-	tx := transmission{request: req, response: make(chan Response), err: make(chan error)}
-	t.outgoing <- tx
-	select {
-	case <-ctx.Done():
-		return Response{}, ctx.Err()
-	case err := <-tx.err:
-		return Response{}, err
-	case resp := <-tx.response:
-		return resp, nil
-	}
-}
-
-func (t *Transceiver) Close() {
-	select {
-	case <-t.closed:
-		return
-	default:
-		close(t.closed)
-	}
-}
-
-func (t *Transceiver) WhenDone(f func()) {
-	go func() {
-		<-t.closed
-		f()
-	}()
 }
