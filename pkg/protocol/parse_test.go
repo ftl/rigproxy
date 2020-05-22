@@ -109,7 +109,7 @@ func TestReadLongCommand(t *testing.T) {
 }
 
 func TestResponseReader(t *testing.T) {
-	buffer := bytes.NewBufferString("USB\n2400\nRPRT 0\nget_freq:\nFrequency: 145000000\nRPRT 0\nRPRT 11\n")
+	buffer := bytes.NewBufferString("USB\n2400\nRPRT 0\nget_freq:\nFrequency: 145000000\nRPRT 0\nRPRT 11\nget_powerstat:\nPower Status: 1\nRPRT 0\n")
 	reader := NewResponseReader(buffer)
 
 	resp, err := reader.ReadResponse(false)
@@ -131,6 +131,15 @@ func TestResponseReader(t *testing.T) {
 	resp, err = reader.ReadResponse(false)
 	assert.NoError(t, err)
 	assert.Equal(t, resp.Result, "11")
+
+	resp, err = reader.ReadResponse(true)
+	require.NoError(t, err)
+	assert.Equal(t, Response{
+		Command: CommandKey("get_powerstat"),
+		Data:    []string{"1"},
+		Keys:    []string{"Power Status"},
+		Result:  "0",
+	}, resp)
 
 	_, err = reader.ReadResponse(false)
 	assert.Equal(t, io.EOF, err)
