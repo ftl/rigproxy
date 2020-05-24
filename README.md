@@ -4,6 +4,24 @@ The rigproxy connects to a [Hamlib](https://github.com/Hamlib/Hamlib) `rigctld` 
 
 The main purpose of rigproxy is to reduce the load on the destination server and rig by reducing the amount of reading requests if there run multiple clients concurrently.
 
+In addition, rigproxy also contains a client library that allows to access `rigctld` servers through a native Go programming interface:
+
+```go
+conn, err := client.Open("localhost:4532")
+if err != nil {
+	log.Fatal(err)
+}
+defer conn.Close()
+
+frequency, err := conn.Frequency(context.Background())
+if err != nil {
+	log.Fatal(err)
+}
+log.Printf("current frequency: %.0fHz", frequency)
+```
+
+See [godoc](https://godoc.org/github.com/ftl/rigproxy/pkg/client) for more information.
+
 ## Usage
 
 `rigproxy` provides a CLI with the following flags:
@@ -32,4 +50,4 @@ I develop this tool for myself and just for fun in my free time. If you find it 
 ## License
 This tool is published under the [MIT License](https://www.tldrlegal.com/l/mit).
 
-Copyright [Florian Thienel](http://thecodingflow.com/) 2019
+Copyright [Florian Thienel](http://thecodingflow.com/)
