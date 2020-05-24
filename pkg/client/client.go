@@ -14,6 +14,22 @@ Connect to a local rigctld server and retrieve the current frequency:
 	}
 	log.Printf("current frequency: %.0fHz", frequency)
 
+
+Poll the current frequency periodically:
+
+	onFrequency := func(f float64) {
+		log.Printf("current frequency: %.0fHz", f)
+	}
+
+	conn, err := client.Open("")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+	conn.StartPolling(500 * time.Millisecond, 100 * time.Millisecond,
+		client.PollCommand(client.OnFrequency(onFrequency), "get_freq"),
+	)
+
 */
 package client
 
@@ -31,11 +47,9 @@ import (
 type Conn struct {
 	address string
 	trx     *protocol.Transceiver
+	polling *polling
+	closed  chan struct{}
 }
-
-type command func()
-
-type responseHandler func(protocol.Response) error
 
 // Open a client connection to the rigctld server at the given address. If address is empty, "localhost:4532" is used as default.
 func Open(address string) (*Conn, error) {
@@ -45,6 +59,7 @@ func Open(address string) (*Conn, error) {
 
 	result := Conn{
 		address: address,
+		closed:  make(chan struct{}),
 	}
 
 	err := result.connect()
@@ -68,7 +83,9 @@ func (c *Conn) connect() error {
 
 	c.trx = protocol.NewTransceiver(out)
 	c.trx.WhenDone(func() {
+		c.StopPolling()
 		out.Close()
+		close(c.closed)
 		log.Printf("disconnected from %s", c.address)
 	})
 
@@ -78,6 +95,24 @@ func (c *Conn) connect() error {
 // Close the client connection.
 func (c *Conn) Close() {
 	c.trx.Close()
+}
+
+// Closed indicates if this connection is closed.
+func (c *Conn) Closed() bool {
+	select {
+	case <-c.closed:
+		return true
+	default:
+		return false
+	}
+}
+
+// WhenClosed will call the given callback asynchronously as soon as this connection is closed.
+func (c *Conn) WhenClosed(f func()) {
+	go func() {
+		<-c.closed
+		f()
+	}()
 }
 
 func (c *Conn) set(ctx context.Context, longCommandName string, args ...string) error {
@@ -165,6 +200,14 @@ func (c *Conn) PowerStatus(ctx context.Context) (PowerStatus, error) {
 	return PowerStatus(response.Data[0]), nil
 }
 
+// OnPowerStatus wraps the given callback function into the ResponseHandler interface and translates the generic response into a power status.
+func OnPowerStatus(callback func(PowerStatus)) ResponseHandler {
+	return ResponseHandlerFunc(func(r protocol.Response) {
+		powerStatus := PowerStatus(r.Data[0])
+		callback(powerStatus)
+	})
+}
+
 /*
 	Frequency
 */
@@ -176,6 +219,18 @@ func (c *Conn) Frequency(ctx context.Context) (float64, error) {
 		return 0, err
 	}
 	return strconv.ParseFloat(response.Data[0], 64)
+}
+
+// OnFrequency wraps the given callback function into the ResponseHandler interface and translates the generic response to a frequency.
+func OnFrequency(callback func(float64)) ResponseHandler {
+	return ResponseHandlerFunc(func(r protocol.Response) {
+		frequency, err := strconv.ParseFloat(r.Data[0], 64)
+		if err != nil {
+			log.Printf("hamlib: cannot parse frequency result: %v", err)
+			return
+		}
+		callback(frequency)
+	})
 }
 
 /*
@@ -219,4 +274,17 @@ func (c *Conn) ModeAndPassband(ctx context.Context) (Mode, float64, error) {
 	mode := Mode(response.Data[0])
 	passband, err := strconv.ParseFloat(response.Data[1], 64)
 	return mode, passband, err
+}
+
+// OnModeAndPassband wraps the given callback function into the ResponseHandler interface and translates the generic response to mode and passband.
+func OnModeAndPassband(callback func(Mode, float64)) ResponseHandler {
+	return ResponseHandlerFunc(func(r protocol.Response) {
+		mode := Mode(r.Data[0])
+		passband, err := strconv.ParseFloat(r.Data[1], 64)
+		if err != nil {
+			log.Printf("hamlib: cannot parse passband result: %v", err)
+			return
+		}
+		callback(mode, passband)
+	})
 }
