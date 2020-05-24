@@ -1,3 +1,5 @@
+[![GoDoc](https://godoc.org/github.com/ftl/rigproxy?status.svg)](https://godoc.org/github.com/ftl/rigproxy)
+
 # rigproxy
 
 The rigproxy connects to a [Hamlib](https://github.com/Hamlib/Hamlib) `rigctld` server and accepts incoming connections from clients that speak the Hamlib net (model #2) protocol. Incoming requests are forwarded to the destination server, responses of reading requests are cached for a configurable amount of time.
