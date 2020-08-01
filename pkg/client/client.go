@@ -264,7 +264,7 @@ const (
 	ModeDSB     = Mode("DSB")
 )
 
-// ModeAAndPassband returns the current mode and passband (in Hz) setting of the connected radio on the currently selected VFO.
+// ModeAndPassband returns the current mode and passband (in Hz) setting of the connected radio on the currently selected VFO.
 func (c *Conn) ModeAndPassband(ctx context.Context) (Mode, float64, error) {
 	response, err := c.get(ctx, "get_mode")
 	if err != nil {
@@ -287,4 +287,9 @@ func OnModeAndPassband(callback func(Mode, float64)) ResponseHandler {
 		}
 		callback(mode, passband)
 	})
+}
+
+// SetModeAndPassband sets the mode and the passband (in Hz) of the connected radio on the currently selected VFO.
+func (c *Conn) SetModeAndPassband(ctx context.Context, mode Mode, passband float64) error {
+	return c.set(ctx, "set_mode", string(mode), fmt.Sprintf("%d", int(passband)))
 }
