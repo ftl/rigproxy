@@ -40,6 +40,9 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/ftl/hamradio"
+	"github.com/ftl/hamradio/bandplan"
+
 	"github.com/ftl/rigproxy/pkg/protocol"
 )
 
@@ -213,25 +216,90 @@ func OnPowerStatus(callback func(PowerStatus)) ResponseHandler {
 	Frequency
 */
 
+// Frequency in Hz
+type Frequency = hamradio.Frequency
+
 // Frequency returns the current frequency in Hz of the connected radio on the currently selected VFO.
-func (c *Conn) Frequency(ctx context.Context) (float64, error) {
+func (c *Conn) Frequency(ctx context.Context) (Frequency, error) {
 	response, err := c.get(ctx, "get_freq")
 	if err != nil {
 		return 0, err
 	}
-	return strconv.ParseFloat(response.Data[0], 64)
+	frequency, err := strconv.ParseFloat(response.Data[0], 64)
+	return Frequency(frequency), err
 }
 
 // OnFrequency wraps the given callback function into the ResponseHandler interface and translates the generic response to a frequency.
-func OnFrequency(callback func(float64)) ResponseHandler {
+func OnFrequency(callback func(Frequency)) ResponseHandler {
 	return ResponseHandlerFunc(func(r protocol.Response) {
 		frequency, err := strconv.ParseFloat(r.Data[0], 64)
 		if err != nil {
 			log.Printf("hamlib: cannot parse frequency result: %v", err)
 			return
 		}
-		callback(frequency)
+		callback(Frequency(frequency))
 	})
+}
+
+// SetFrequency to the given frequency in Hz on the connected radio and the currently selected VFO.
+func (c *Conn) SetFrequency(ctx context.Context, frequency Frequency) error {
+	return c.Set(ctx, "set_frequency", fmt.Sprintf("%d", int(frequency)))
+}
+
+/*
+	Band Switch
+*/
+
+// BandUp switches to the next band upwards on the connected radio and the currently selected VFO.
+func (c *Conn) BandUp(ctx context.Context) error {
+	return c.Set(ctx, "vfo_op", "BAND_UP")
+}
+
+// BandDown switches to the next band downwards on the connected radio and the currently selected VFO.
+func (c *Conn) BandDown(ctx context.Context) error {
+	return c.Set(ctx, "vfo_op", "BAND_DOWN")
+}
+
+// SwitchToBand switches to the given frequency band on the connected radio and the currently selected VFO.
+func (c *Conn) SwitchToBand(ctx context.Context, band bandplan.Band) error {
+	currentFrequency, err := c.Frequency(ctx)
+	if err != nil {
+		return err
+	}
+	if band.FrequencyRange.Contains(currentFrequency) {
+		return nil
+	}
+
+	var direction int
+	if currentFrequency > band.FrequencyRange.To {
+		direction = -1
+	} else if currentFrequency < band.FrequencyRange.From {
+		direction = 1
+	}
+
+	for {
+		if direction == 1 {
+			err = c.BandUp(ctx)
+		} else if direction == -1 {
+			err = c.BandDown(ctx)
+		}
+		if err != nil {
+			return err
+		}
+		currentFrequency, err = c.Frequency(ctx)
+		if err != nil {
+			return err
+		}
+		if band.FrequencyRange.Contains(currentFrequency) {
+			return nil
+		}
+		if currentFrequency > band.FrequencyRange.To && direction == 1 {
+			return fmt.Errorf("cannot switch upwards to band %s", band.Name)
+		}
+		if currentFrequency < band.FrequencyRange.From && direction == -1 {
+			return fmt.Errorf("cannot switch downwards to band %s", band.Name)
+		}
+	}
 }
 
 /*
@@ -266,7 +334,7 @@ const (
 )
 
 // ModeAndPassband returns the current mode and passband (in Hz) setting of the connected radio on the currently selected VFO.
-func (c *Conn) ModeAndPassband(ctx context.Context) (Mode, float64, error) {
+func (c *Conn) ModeAndPassband(ctx context.Context) (Mode, Frequency, error) {
 	response, err := c.get(ctx, "get_mode")
 	if err != nil {
 		return ModeNone, 0, err
@@ -274,7 +342,7 @@ func (c *Conn) ModeAndPassband(ctx context.Context) (Mode, float64, error) {
 
 	mode := Mode(response.Data[0])
 	passband, err := strconv.ParseFloat(response.Data[1], 64)
-	return mode, passband, err
+	return mode, Frequency(passband), err
 }
 
 // OnModeAndPassband wraps the given callback function into the ResponseHandler interface and translates the generic response to mode and passband.
@@ -291,6 +359,6 @@ func OnModeAndPassband(callback func(Mode, float64)) ResponseHandler {
 }
 
 // SetModeAndPassband sets the mode and the passband (in Hz) of the connected radio on the currently selected VFO.
-func (c *Conn) SetModeAndPassband(ctx context.Context, mode Mode, passband float64) error {
+func (c *Conn) SetModeAndPassband(ctx context.Context, mode Mode, passband Frequency) error {
 	return c.Set(ctx, "set_mode", string(mode), fmt.Sprintf("%d", int(passband)))
 }
