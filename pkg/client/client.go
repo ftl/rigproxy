@@ -115,7 +115,8 @@ func (c *Conn) WhenClosed(f func()) {
 	}()
 }
 
-func (c *Conn) set(ctx context.Context, longCommandName string, args ...string) error {
+// Set executes the given hamlib set command with the given parameters.
+func (c *Conn) Set(ctx context.Context, longCommandName string, args ...string) error {
 	request := protocol.Request{Command: protocol.LongCommand(longCommandName), Args: args}
 
 	result := make(chan error)
@@ -178,17 +179,17 @@ const (
 
 // PowerOn sets the power status of the connected radio to PowerStatusOn.
 func (c *Conn) PowerOn(ctx context.Context) error {
-	return c.set(ctx, "set_powerstat", string(PowerStatusOn))
+	return c.Set(ctx, "set_powerstat", string(PowerStatusOn))
 }
 
 // PowerOff sets the power status of the connected radio to PowerStatusOff.
 func (c *Conn) PowerOff(ctx context.Context) error {
-	return c.set(ctx, "set_powerstat", string(PowerStatusOff))
+	return c.Set(ctx, "set_powerstat", string(PowerStatusOff))
 }
 
 // PowerStandby sets the power status of the connected radio to PowerStatusStandby.
 func (c *Conn) PowerStandby(ctx context.Context) error {
-	return c.set(ctx, "set_powerstat", string(PowerStatusStandby))
+	return c.Set(ctx, "set_powerstat", string(PowerStatusStandby))
 }
 
 // PowerStatus returns the current power status of the connected radio.
@@ -291,5 +292,5 @@ func OnModeAndPassband(callback func(Mode, float64)) ResponseHandler {
 
 // SetModeAndPassband sets the mode and the passband (in Hz) of the connected radio on the currently selected VFO.
 func (c *Conn) SetModeAndPassband(ctx context.Context, mode Mode, passband float64) error {
-	return c.set(ctx, "set_mode", string(mode), fmt.Sprintf("%d", int(passband)))
+	return c.Set(ctx, "set_mode", string(mode), fmt.Sprintf("%d", int(passband)))
 }
