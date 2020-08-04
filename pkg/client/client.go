@@ -393,3 +393,38 @@ func OnPowerLevel(callback func(float64)) (ResponseHandler, string, string) {
 func (c *Conn) SetPowerLevel(ctx context.Context, powerLevel float64) error {
 	return c.Set(ctx, "set_level", "RFPOWER", fmt.Sprintf("%f", powerLevel))
 }
+
+/*
+	PTT
+*/
+
+type PTT string
+
+const (
+	PTTRx     PTT = "0"
+	PTTTx     PTT = "1"
+	PTTTxMic  PTT = "2"
+	PTTTxData PTT = "3"
+)
+
+// PTT returns the current PTT state of the connected radio.
+func (c *Conn) PTT(ctx context.Context) (PTT, error) {
+	response, err := c.get(ctx, "get_ptt")
+	if err != nil {
+		return PTTRx, err
+	}
+
+	return PTT(response.Data[0]), nil
+}
+
+// OnPTT wraps the given callback function into the ResponseHandler interface and translates the generic response to PTT state.
+func OnPTT(callback func(PTT)) (ResponseHandler, string) {
+	return ResponseHandlerFunc(func(r protocol.Response) {
+		callback(PTT(r.Data[0]))
+	}), "get_ptt"
+}
+
+// SetPTT sets the PTT of the connected radio.
+func (c *Conn) SetPTT(ctx context.Context, ptt PTT) error {
+	return c.Set(ctx, "set_ptt", string(ptt))
+}
