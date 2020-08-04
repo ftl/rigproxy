@@ -27,7 +27,7 @@ Poll the current frequency periodically:
 	}
 	defer conn.Close()
 	conn.StartPolling(500 * time.Millisecond, 100 * time.Millisecond,
-		client.PollCommand(client.OnFrequency(onFrequency), "get_freq"),
+		client.PollCommand(client.OnFrequency(onFrequency)),
 	)
 
 */
@@ -205,11 +205,11 @@ func (c *Conn) PowerStatus(ctx context.Context) (PowerStatus, error) {
 }
 
 // OnPowerStatus wraps the given callback function into the ResponseHandler interface and translates the generic response into a power status.
-func OnPowerStatus(callback func(PowerStatus)) ResponseHandler {
+func OnPowerStatus(callback func(PowerStatus)) (ResponseHandler, string) {
 	return ResponseHandlerFunc(func(r protocol.Response) {
 		powerStatus := PowerStatus(r.Data[0])
 		callback(powerStatus)
-	})
+	}), "get_powerstat"
 }
 
 /*
@@ -230,7 +230,7 @@ func (c *Conn) Frequency(ctx context.Context) (Frequency, error) {
 }
 
 // OnFrequency wraps the given callback function into the ResponseHandler interface and translates the generic response to a frequency.
-func OnFrequency(callback func(Frequency)) ResponseHandler {
+func OnFrequency(callback func(Frequency)) (ResponseHandler, string) {
 	return ResponseHandlerFunc(func(r protocol.Response) {
 		frequency, err := strconv.ParseFloat(r.Data[0], 64)
 		if err != nil {
@@ -238,7 +238,7 @@ func OnFrequency(callback func(Frequency)) ResponseHandler {
 			return
 		}
 		callback(Frequency(frequency))
-	})
+	}), "get_freq"
 }
 
 // SetFrequency to the given frequency in Hz on the connected radio and the currently selected VFO.
@@ -346,7 +346,7 @@ func (c *Conn) ModeAndPassband(ctx context.Context) (Mode, Frequency, error) {
 }
 
 // OnModeAndPassband wraps the given callback function into the ResponseHandler interface and translates the generic response to mode and passband.
-func OnModeAndPassband(callback func(Mode, float64)) ResponseHandler {
+func OnModeAndPassband(callback func(Mode, Frequency)) (ResponseHandler, string) {
 	return ResponseHandlerFunc(func(r protocol.Response) {
 		mode := Mode(r.Data[0])
 		passband, err := strconv.ParseFloat(r.Data[1], 64)
@@ -354,11 +354,42 @@ func OnModeAndPassband(callback func(Mode, float64)) ResponseHandler {
 			log.Printf("hamlib: cannot parse passband result: %v", err)
 			return
 		}
-		callback(mode, passband)
-	})
+		callback(mode, Frequency(passband))
+	}), "get_mode"
 }
 
 // SetModeAndPassband sets the mode and the passband (in Hz) of the connected radio on the currently selected VFO.
 func (c *Conn) SetModeAndPassband(ctx context.Context, mode Mode, passband Frequency) error {
 	return c.Set(ctx, "set_mode", string(mode), fmt.Sprintf("%d", int(passband)))
+}
+
+/*
+	Power Level
+*/
+
+// PowerLevel returns the current power level setting of the connected radio.
+func (c *Conn) PowerLevel(ctx context.Context) (float64, error) {
+	response, err := c.get(ctx, "get_level", "RFPOWER")
+	if err != nil {
+		return 0, err
+	}
+
+	return strconv.ParseFloat(response.Data[0], 64)
+}
+
+// OnPowerLevel wraps the given callback function into the ResponseHandler interface and translates the generic response to power level.
+func OnPowerLevel(callback func(float64)) (ResponseHandler, string, string) {
+	return ResponseHandlerFunc(func(r protocol.Response) {
+		powerLevel, err := strconv.ParseFloat(r.Data[0], 64)
+		if err != nil {
+			log.Printf("hamlib: cannot parse power level result: %v", err)
+			return
+		}
+		callback(powerLevel)
+	}), "get_level", "RFPOWER"
+}
+
+// SetPowerLevel sets the power level of the connected radio.
+func (c *Conn) SetPowerLevel(ctx context.Context, powerLevel float64) error {
+	return c.Set(ctx, "set_level", "RFPOWER", fmt.Sprintf("%f", powerLevel))
 }
