@@ -301,6 +301,7 @@ var (
 		{
 			Short:                'G',
 			Long:                 "vfo_op",
+			InvalidatesCommand:   "get_freq",
 			Args:                 1,
 			SupportsExtendedMode: true,
 		},
