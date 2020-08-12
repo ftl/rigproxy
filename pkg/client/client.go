@@ -284,7 +284,7 @@ func OnFrequency(callback func(Frequency)) (ResponseHandler, string) {
 
 // SetFrequency to the given frequency in Hz on the connected radio and the currently selected VFO.
 func (c *Conn) SetFrequency(ctx context.Context, frequency Frequency) error {
-	return c.Set(ctx, "set_frequency", fmt.Sprintf("%d", int(frequency)))
+	return c.Set(ctx, "set_freq", fmt.Sprintf("%d", int(frequency)))
 }
 
 /*
