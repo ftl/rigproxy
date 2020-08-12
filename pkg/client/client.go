@@ -213,6 +213,47 @@ func OnPowerStatus(callback func(PowerStatus)) (ResponseHandler, string) {
 }
 
 /*
+	VFO
+*/
+
+// VFO is the currently selected VFO
+type VFO string
+
+const (
+	VFOA    VFO = "VFOA"
+	VFOB    VFO = "VFOB"
+	VFOC    VFO = "VFOC"
+	CurrVFO VFO = "currVFO"
+	VFOVFO  VFO = "VFO"
+	MEMVFO  VFO = "MEM"
+	MainVFO VFO = "Main"
+	SubVFO  VFO = "Sub"
+	TXVFO   VFO = "TX"
+	RXVFO   VFO = "RX"
+)
+
+// VFO returns the currently selected VFO of the connected radio.
+func (c *Conn) VFO(ctx context.Context) (VFO, error) {
+	response, err := c.get(ctx, "get_vfo")
+	if err != nil {
+		return "", err
+	}
+	return VFO(response.Data[0]), nil
+}
+
+// OnVFO wraps the given callback function into the ResponseHandler interface and translates the generic response to a VFO value.
+func OnVFO(callback func(VFO)) (ResponseHandler, string) {
+	return ResponseHandlerFunc(func(r protocol.Response) {
+		callback(VFO(r.Data[0]))
+	}), "get_vfo"
+}
+
+// SetVFO to the given VFO on the connected radio.
+func (c *Conn) SetVFO(ctx context.Context, vfo VFO) error {
+	return c.Set(ctx, "set_vfo", string(vfo))
+}
+
+/*
 	Frequency
 */
 
@@ -229,7 +270,7 @@ func (c *Conn) Frequency(ctx context.Context) (Frequency, error) {
 	return Frequency(frequency), err
 }
 
-// OnFrequency wraps the given callback function into the ResponseHandler interface and translates the generic response to a frequency.
+// OnFrequency wraps the given callback function into the ResponseHandler interface and translates the generic response to a Frequency value.
 func OnFrequency(callback func(Frequency)) (ResponseHandler, string) {
 	return ResponseHandlerFunc(func(r protocol.Response) {
 		frequency, err := strconv.ParseFloat(r.Data[0], 64)
