@@ -20,6 +20,7 @@ var (
 	lifetime    = flag.DurationP("lifetime", "L", 200*time.Millisecond, "the lifetime of responses in the cache (default: 200ms)")
 	timeout     = flag.DurationP("timeout", "t", 10*time.Second, "the timeout for network requests")
 	retry       = flag.DurationP("retry", "r", 10*time.Second, "the retry interval")
+	trace       = flag.BoolP("trace", "v", false, "trace the communication with the destination")
 	test        = flag.BoolP("test", "T", false, "run test code")
 )
 
@@ -54,6 +55,7 @@ func loop() {
 		return
 	}
 	defer out.Close()
+	log.Printf("connected to %s", *destination)
 
 	trx := protocol.NewTransceiver(netio.WithTimeout(out, *timeout))
 	trx.WhenDone(func() {
@@ -80,7 +82,7 @@ func loop() {
 			return
 		}
 
-		go proxy.NewCached(conn, trx, cache, done)
+		go proxy.NewCached(conn, trx, cache, done, *trace)
 	}
 }
 

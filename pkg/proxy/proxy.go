@@ -14,6 +14,7 @@ type Proxy struct {
 	trx    Transceiver
 	cache  Cache
 	closed chan struct{}
+	trace  bool
 }
 
 type Transceiver interface {
@@ -33,16 +34,17 @@ var ChkVfoResponse = protocol.Response{
 	Result:  "0",
 }
 
-func New(rwc io.ReadWriteCloser, trx Transceiver, done <-chan struct{}) *Proxy {
-	return NewCached(rwc, trx, new(nopCache), done)
+func New(rwc io.ReadWriteCloser, trx Transceiver, done <-chan struct{}, trace bool) *Proxy {
+	return NewCached(rwc, trx, new(nopCache), done, trace)
 }
 
-func NewCached(rwc io.ReadWriteCloser, trx Transceiver, cache Cache, done <-chan struct{}) *Proxy {
+func NewCached(rwc io.ReadWriteCloser, trx Transceiver, cache Cache, done <-chan struct{}, trace bool) *Proxy {
 	result := Proxy{
 		rwc:    rwc,
 		trx:    trx,
 		cache:  cache,
 		closed: make(chan struct{}),
+		trace:  trace,
 	}
 
 	go result.start()
@@ -91,10 +93,10 @@ func (p *Proxy) start() {
 }
 
 func (p *Proxy) handleRequest(req protocol.Request) (protocol.Response, error) {
-	log.Println(">", req.LongFormat())
+	p.traceLog(">", req.LongFormat())
 
 	if req.Key() == protocol.CommandKey("chk_vfo") {
-		log.Println("<", "CHKVFO 0")
+		p.traceLog("<", "CHKVFO 0")
 		return ChkVfoResponse, nil
 	}
 
@@ -105,7 +107,7 @@ func (p *Proxy) handleRequest(req protocol.Request) (protocol.Response, error) {
 	if req.Cacheable {
 		resp, ok := p.cache.Get(req.Key())
 		if ok {
-			log.Println("c", resp.Format())
+			p.traceLog("c", resp.Format())
 			return resp, nil
 		}
 	}
@@ -119,7 +121,7 @@ func (p *Proxy) handleRequest(req protocol.Request) (protocol.Response, error) {
 		p.cache.Put(req.Key(), resp)
 	}
 
-	log.Println("<", resp.Format())
+	p.traceLog("<", resp.Format())
 	return resp, nil
 }
 
@@ -134,6 +136,13 @@ func (p *Proxy) Close() {
 
 func (p *Proxy) Wait() {
 	<-p.closed
+}
+
+func (p *Proxy) traceLog(v ...interface{}) {
+	if !p.trace {
+		return
+	}
+	log.Print(v...)
 }
 
 type nopCache struct{}
