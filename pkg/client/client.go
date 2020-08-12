@@ -365,14 +365,28 @@ const (
 	ModePKTLSB  = Mode("PKTLSB")
 	ModePKTUSB  = Mode("PKTUSB")
 	ModePKTFM   = Mode("PKTFM")
-	ModeECSSUSB = Mode("ECSSUSB")
 	ModeECSSLSB = Mode("ECSSLSB")
+	ModeECSSUSB = Mode("ECSSUSB")
 	ModeFAX     = Mode("FAX")
 	ModeSAM     = Mode("SAM")
 	ModeSAL     = Mode("SAL")
 	ModeSAH     = Mode("SAH")
 	ModeDSB     = Mode("DSB")
 )
+
+// ToBandplanMode maps this Mode value to the type system of the bandplan package.
+func (m Mode) ToBandplanMode() bandplan.Mode {
+	switch m {
+	case ModeCW, ModeCWR:
+		return bandplan.ModeCW
+	case ModeUSB, ModeLSB, ModeAM, ModeFM, ModeWFM, ModeAMS, ModeDSB:
+		return bandplan.ModePhone
+	case ModeRTTY, ModeRTTYR, ModePKTLSB, ModePKTUSB, ModePKTFM, ModeECSSLSB, ModeECSSUSB, ModeFAX, ModeSAM, ModeSAL, ModeSAH:
+		return bandplan.ModeDigital
+	default:
+		return bandplan.ModeDigital
+	}
+}
 
 // ModeAndPassband returns the current mode and passband (in Hz) setting of the connected radio on the currently selected VFO.
 func (c *Conn) ModeAndPassband(ctx context.Context) (Mode, Frequency, error) {
