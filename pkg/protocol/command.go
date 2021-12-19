@@ -423,6 +423,11 @@ var (
 			Cacheable: true,
 		},
 		{
+			Short: 0xf2,
+			Long:  "set_vfo_opt",
+			Args:  1,
+		},
+		{
 			Short: 0xf1,
 			Long:  "halt",
 		},

@@ -81,7 +81,7 @@ var NoResponse = Response{}
 
 var ChkVFOResponse = Response{
 	Command: "chk_vfo",
-	Data:    []string{"CHKVFO 0"},
+	Data:    []string{"0"},
 	Keys:    []string{""},
 	Result:  "0",
 }
