@@ -385,7 +385,7 @@ var (
 			InvalidatesCommand: "get_twiddle",
 		},
 		{
-			Short:     0x8d,
+			Short:     0x8e,
 			Long:      "get_twiddle",
 			Cacheable: true,
 		},
@@ -395,9 +395,10 @@ var (
 			Args:  1,
 		},
 		{
-			Short: 'b',
-			Long:  "send_morse",
-			Args:  1,
+			Short:      'b',
+			Long:       "send_morse",
+			Args:       1,
+			ArgsInLine: true,
 		},
 		{
 			Short: 0xbb,

@@ -21,7 +21,7 @@ func TestProxyTransceiverSendReceiveRoundtrip(t *testing.T) {
 	trx := protocol.NewTransceiver(trxBuffer)
 	defer trx.Close()
 
-	proxy := New(proxyBuffer, trx, nil)
+	proxy := New(proxyBuffer, trx, nil, false)
 	defer proxy.Close()
 	proxy.Wait()
 
@@ -47,7 +47,7 @@ func TestCommands(t *testing.T) {
 			defer trx.Close()
 
 			proxyBuffer := test.NewBuffer(tC.proxy)
-			proxy := New(proxyBuffer, trx, nil)
+			proxy := New(proxyBuffer, trx, nil, false)
 			defer proxy.Close()
 			proxy.Wait()
 
@@ -61,7 +61,7 @@ func TestProxyStopsWhenDone(t *testing.T) {
 	bytes := make(chan byte)
 	r := newChannelReader(bytes)
 
-	proxy := New(r, nil, done)
+	proxy := New(r, nil, done, false)
 
 	go func() {
 		<-time.After(10 * time.Millisecond)
@@ -75,7 +75,7 @@ func TestProxyStopsWhenDone(t *testing.T) {
 func TestProxyStopsWhenReceiveFails(t *testing.T) {
 	trx := new(mockTransceiver)
 	trx.On("Send", mock.Anything, mock.Anything).Once().Return(protocol.Response{}, errors.New("fail"))
-	proxy := New(test.NewBuffer("f\n"), trx, nil)
+	proxy := New(test.NewBuffer("f\n"), trx, nil, false)
 
 	proxy.Wait()
 }
