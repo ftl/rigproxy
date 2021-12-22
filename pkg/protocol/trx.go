@@ -25,7 +25,7 @@ type transmission struct {
 func NewTransceiver(rw io.ReadWriter) *Transceiver {
 	result := Transceiver{
 		rw:       rw,
-		outgoing: make(chan transmission),
+		outgoing: make(chan transmission, 1),
 		polling: polling{
 			tick: time.NewTicker(1 * time.Second),
 		},
