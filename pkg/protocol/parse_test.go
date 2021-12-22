@@ -67,6 +67,8 @@ func TestNextRequest(t *testing.T) {
 		{"single long command with args", "\\set_freq 3720000", Request{Command: LongCommand("set_freq"), Args: []string{"3720000"}}, true},
 		{"extended long command", ";\\get_freq", Request{Command: LongCommand("get_freq"), ExtendedSeparator: ";"}, true},
 		{"extended long command newline", "+\\get_mode", Request{Command: LongCommand("get_mode"), ExtendedSeparator: "\n"}, true},
+		{"line command", "\\send_morse a b c", Request{Command: LongCommand("send_morse"), Args: []string{"a b c"}}, true},
+		{"line command with newline", "\\send_morse a b c\nfmv", Request{Command: LongCommand("send_morse"), Args: []string{"a b c"}}, true},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {

@@ -110,6 +110,15 @@ loop:
 		Command: cmd,
 	}
 
+	if cmd.ArgsInLine {
+		line, err := readLine(r)
+		if err != nil {
+			return Request{}, err
+		}
+		req.Args = []string{line}
+		return req, nil
+	}
+
 	args, err := readArgs(r, cmd.Args)
 	if err != nil {
 		return Request{}, err
@@ -161,6 +170,34 @@ func readWord(r io.Reader) (string, error) {
 	}
 
 	return word, nil
+}
+
+func readLine(r io.Reader) (string, error) {
+	c := make([]byte, 1)
+	line := ""
+	for {
+		n, err := r.Read(c)
+		if n != 1 || err == io.EOF {
+			break
+		}
+		if err != nil {
+			return "", errors.Wrap(err, "read line")
+		}
+		if c[0] == '\n' {
+			if len(line) > 0 {
+				break
+			} else {
+				continue
+			}
+		}
+		line += string(c[0])
+	}
+
+	if len(line) == 0 {
+		return "", io.EOF
+	}
+
+	return line, nil
 }
 
 func readLongCommand(r io.Reader) (Command, error) {

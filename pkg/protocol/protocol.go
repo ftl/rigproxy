@@ -18,6 +18,7 @@ type Command struct {
 	Short                byte
 	Long                 string
 	Args                 int
+	ArgsInLine           bool
 	InvalidatesCommand   string
 	HasSubCommand        bool
 	SupportsExtendedMode bool
