@@ -1,3 +1,8 @@
+/*
+Package protocol defines and parses the rigctl commands.
+
+See https://github.com/Hamlib/Hamlib/blob/tests/rigctl_parse.c static struct test_table for the official list of commands.
+*/
 package protocol
 
 var (
@@ -374,14 +379,43 @@ var (
 			Long:  "recv_dtmf",
 		},
 		{
+			Short:              0x8d,
+			Long:               "set_twiddle",
+			Args:               1,
+			InvalidatesCommand: "get_twiddle",
+		},
+		{
+			Short:     0x8d,
+			Long:      "get_twiddle",
+			Cacheable: true,
+		},
+		{
+			Short: 0x94,
+			Long:  "send_voice_mem",
+			Args:  1,
+		},
+		{
 			Short: 'b',
 			Long:  "send_morse",
 			Args:  1,
 		},
 		{
+			Short: 0xbb,
+			Long:  "stop_morse",
+		},
+		{
+			Short: 0xbc,
+			Long:  "wait_morse",
+		},
+		{
 			Short: 'w',
 			Long:  "send_cmd",
 			Args:  2,
+		},
+		{
+			Short: 'W',
+			Long:  "send_cmd_rx",
+			Args:  1,
 		},
 		{
 			Short:     '_',
@@ -436,6 +470,44 @@ var (
 			Long:                 "pause",
 			Args:                 1,
 			SupportsExtendedMode: true,
+		},
+		{
+			Short: 0x97,
+			Long:  "uplink",
+			Args:  1,
+		},
+		{
+			Short:              0x95,
+			Long:               "set_cache",
+			Args:               1,
+			InvalidatesCommand: "get_cache",
+		},
+		{
+			Short:     0x96,
+			Long:      "get_cache",
+			Cacheable: true,
+		},
+		{
+			Short: 0xf3,
+			Long:  "get_vfo_info",
+			Args:  1,
+		},
+		{
+			Short: 0xf4,
+			Long:  "get_vfo_list",
+		},
+		{
+			Short: 0xf5,
+			Long:  "get_rig_info",
+		},
+		{
+			Short: 0xf6,
+			Long:  "get_modes",
+		},
+		{
+			Short: 0xf7,
+			Long:  "get_mode_bandwidths",
+			Args:  1,
 		},
 	}
 )
