@@ -73,12 +73,12 @@ func (r *Response) Format() string {
 func (r *Response) ExtendedFormat(separator string) string {
 	buffer := bytes.NewBufferString("")
 
-	fmt.Fprintf(buffer, "%s:\n", r.Command)
+	fmt.Fprintf(buffer, "%s:%s", r.Command, separator)
 	for i, value := range r.Data {
 		if r.Keys[i] != "" {
-			fmt.Fprintf(buffer, "%s: %s\n", r.Keys[i], value)
+			fmt.Fprintf(buffer, "%s: %s%s", r.Keys[i], value, separator)
 		} else {
-			fmt.Fprintln(buffer, value)
+			fmt.Fprintf(buffer, "%s%s", value, separator)
 		}
 	}
 	fmt.Fprintf(buffer, "RPRT %s", r.Result)
