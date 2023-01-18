@@ -14,7 +14,6 @@ Connect to a local rigctld server and retrieve the current frequency:
 	}
 	log.Printf("current frequency: %.0fHz", frequency)
 
-
 Poll the current frequency periodically:
 
 	onFrequency := func(f float64) {
@@ -29,7 +28,6 @@ Poll the current frequency periodically:
 	conn.StartPolling(500 * time.Millisecond, 100 * time.Millisecond,
 		client.PollCommand(client.OnFrequency(onFrequency)),
 	)
-
 */
 package client
 
@@ -482,4 +480,45 @@ func OnPTT(callback func(PTT)) (ResponseHandler, string) {
 // SetPTT sets the PTT of the connected radio.
 func (c *Conn) SetPTT(ctx context.Context, ptt PTT) error {
 	return c.Set(ctx, "set_ptt", string(ptt))
+}
+
+/**
+  CW
+*/
+
+// SendMorse sends the given text as morse code through the connected radio.
+func (c *Conn) SendMorse(ctx context.Context, text string) error {
+	return c.Set(ctx, "send_morse", text)
+}
+
+// StopMorse stops the current morse code transmission.
+func (c *Conn) StopMorse(ctx context.Context) error {
+	return c.Set(ctx, "stop_morse")
+}
+
+// MorseSpeed returns the current morse speed setting of the connected radio in wpm.
+func (c *Conn) MorseSpeed(ctx context.Context) (float64, error) {
+	response, err := c.get(ctx, "get_level", "KEYSPD")
+	if err != nil {
+		return 0, err
+	}
+
+	return strconv.ParseFloat(response.Data[0], 64)
+}
+
+// OnMorseSpeed wraps the given callback function into the ResponseHandler interface and translates the generic response to wpm.
+func OnMorseSpeed(callback func(int)) (ResponseHandler, string, string) {
+	return ResponseHandlerFunc(func(r protocol.Response) {
+		wpm, err := strconv.Atoi(r.Data[0])
+		if err != nil {
+			log.Printf("hamlib: cannot parse morse speed result: %v", err)
+			return
+		}
+		callback(wpm)
+	}), "get_level", "KEYSPD"
+}
+
+// SetMorseSpeed sets the morse speed of the connected radio in wpm.
+func (c *Conn) SetMorseSpeed(ctx context.Context, wpm int) error {
+	return c.Set(ctx, "set_level", "KEYSPD", fmt.Sprintf("%d", wpm))
 }
