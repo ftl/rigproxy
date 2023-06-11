@@ -76,11 +76,14 @@ func (t *Transceiver) start() {
 			} else if err != nil {
 				log.Println("receive:", err)
 				tx.err <- fmt.Errorf("receiving of response failed: %w", err)
+			} else if resp.Result != "0" {
+				log.Printf("hamlib error code: %s", resp.Result)
+				tx.err <- fmt.Errorf("request failed: %s", resp.Result)
 			} else {
 				select {
 				case tx.response <- resp:
 				default:
-					log.Print("could not queue response to transmission, nobody is listening")
+					log.Printf("could not queue response to transmission, nobody is listening: %+v", resp)
 				}
 			}
 		case <-t.polling.tick.C:
