@@ -463,6 +463,16 @@ var (
 			Args:  1,
 		},
 		{
+			Short: 0xa2,
+			Long:  "set_lock_mode",
+			Args:  1,
+		},
+		{
+			Short:     0xa3,
+			Long:      "get_lock_mode",
+			Cacheable: true,
+		},
+		{
 			Short: 0xf1,
 			Long:  "halt",
 		},
