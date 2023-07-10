@@ -289,6 +289,24 @@ func (c *Conn) SetFrequency(ctx context.Context, frequency Frequency) error {
 	Band Switch
 */
 
+var rigBand = map[bandplan.BandName]string{
+	bandplan.Band160m: "0",
+	bandplan.Band80m:  "1",
+	bandplan.Band60m:  "2",
+	bandplan.Band40m:  "3",
+	bandplan.Band30m:  "4",
+	bandplan.Band20m:  "5",
+	bandplan.Band17m:  "6",
+	bandplan.Band15m:  "7",
+	bandplan.Band12m:  "8",
+	bandplan.Band10m:  "9",
+}
+
+// BandSelect switches to the given band on the connected radio and the currently selected VFO.
+func (c *Conn) BandSelect(ctx context.Context, band bandplan.BandName) error {
+	return c.Set(ctx, "set_level", "BAND_SELECT", rigBand[band])
+}
+
 // BandUp switches to the next band upwards on the connected radio and the currently selected VFO.
 func (c *Conn) BandUp(ctx context.Context) error {
 	return c.Set(ctx, "vfo_op", "BAND_UP")
@@ -308,6 +326,12 @@ func (c *Conn) SwitchToBand(ctx context.Context, band bandplan.Band) error {
 	if band.FrequencyRange.Contains(currentFrequency) {
 		return nil
 	}
+
+	err = c.BandSelect(ctx, band.Name)
+	if err == nil {
+		return nil
+	}
+	log.Printf("hamlib: cannot switch to band with BAND_SELECT, using BAND_UP/BAND_DOWN instead: %v", err)
 
 	var direction int
 	if currentFrequency > band.FrequencyRange.To {
