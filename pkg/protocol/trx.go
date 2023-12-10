@@ -77,8 +77,9 @@ func (t *Transceiver) start() {
 				log.Println("receive:", err)
 				tx.err <- fmt.Errorf("receiving of response failed: %w", err)
 			} else if resp.Result != "0" {
-				log.Printf("hamlib error code: %s", resp.Result)
-				tx.err <- fmt.Errorf("request failed: %s", resp.Result)
+				err := newError(resp.Result)
+				log.Printf("%v", err)
+				tx.err <- fmt.Errorf("request failed: %w", err)
 			} else {
 				select {
 				case tx.response <- resp:

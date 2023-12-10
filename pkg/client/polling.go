@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -100,6 +101,10 @@ func (p *polling) poll(trx *protocol.Transceiver, timeout time.Duration, request
 		response, err := trx.Send(ctx, request)
 		if err != nil {
 			log.Printf("sending poll request %s failed: %v", pollRequest.Command.Long, err)
+			if errors.Is(err, protocol.ErrFeatureNotAvailable) || errors.Is(err, protocol.ErrFeatureNotImplemented) || errors.Is(err, protocol.ErrFunctionDeprecated) {
+				log.Printf("deactivating poll request %s: %v", pollRequest.Command.Long, err)
+				p.remove(pollRequest.Command)
+			}
 			continue
 		}
 		if response.Result != "0" {
