@@ -205,6 +205,9 @@ func (c *Conn) PowerStatus(ctx context.Context) (PowerStatus, error) {
 // OnPowerStatus wraps the given callback function into the ResponseHandler interface and translates the generic response into a power status.
 func OnPowerStatus(callback func(PowerStatus)) (ResponseHandler, string) {
 	return ResponseHandlerFunc(func(r protocol.Response) {
+		if len(r.Data) == 0 {
+			return
+		}
 		powerStatus := PowerStatus(r.Data[0])
 		callback(powerStatus)
 	}), "get_powerstat"
@@ -242,6 +245,9 @@ func (c *Conn) VFO(ctx context.Context) (VFO, error) {
 // OnVFO wraps the given callback function into the ResponseHandler interface and translates the generic response to a VFO value.
 func OnVFO(callback func(VFO)) (ResponseHandler, string) {
 	return ResponseHandlerFunc(func(r protocol.Response) {
+		if len(r.Data) == 0 {
+			return
+		}
 		callback(VFO(r.Data[0]))
 	}), "get_vfo"
 }
@@ -271,6 +277,9 @@ func (c *Conn) Frequency(ctx context.Context) (Frequency, error) {
 // OnFrequency wraps the given callback function into the ResponseHandler interface and translates the generic response to a Frequency value.
 func OnFrequency(callback func(Frequency)) (ResponseHandler, string) {
 	return ResponseHandlerFunc(func(r protocol.Response) {
+		if len(r.Data) == 0 {
+			return
+		}
 		frequency, err := strconv.ParseFloat(r.Data[0], 64)
 		if err != nil {
 			log.Printf("hamlib: cannot parse frequency result: %v", err)
@@ -425,6 +434,9 @@ func (c *Conn) ModeAndPassband(ctx context.Context) (Mode, Frequency, error) {
 // OnModeAndPassband wraps the given callback function into the ResponseHandler interface and translates the generic response to mode and passband.
 func OnModeAndPassband(callback func(Mode, Frequency)) (ResponseHandler, string) {
 	return ResponseHandlerFunc(func(r protocol.Response) {
+		if len(r.Data) == 0 {
+			return
+		}
 		mode := Mode(r.Data[0])
 		passband, err := strconv.ParseFloat(r.Data[1], 64)
 		if err != nil {
@@ -457,6 +469,9 @@ func (c *Conn) PowerLevel(ctx context.Context) (float64, error) {
 // OnPowerLevel wraps the given callback function into the ResponseHandler interface and translates the generic response to power level.
 func OnPowerLevel(callback func(float64)) (ResponseHandler, string, string) {
 	return ResponseHandlerFunc(func(r protocol.Response) {
+		if len(r.Data) == 0 {
+			return
+		}
 		powerLevel, err := strconv.ParseFloat(r.Data[0], 64)
 		if err != nil {
 			log.Printf("hamlib: cannot parse power level result: %v", err)
@@ -497,6 +512,9 @@ func (c *Conn) PTT(ctx context.Context) (PTT, error) {
 // OnPTT wraps the given callback function into the ResponseHandler interface and translates the generic response to PTT state.
 func OnPTT(callback func(PTT)) (ResponseHandler, string) {
 	return ResponseHandlerFunc(func(r protocol.Response) {
+		if len(r.Data) == 0 {
+			return
+		}
 		callback(PTT(r.Data[0]))
 	}), "get_ptt"
 }
@@ -533,6 +551,9 @@ func (c *Conn) MorseSpeed(ctx context.Context) (float64, error) {
 // OnMorseSpeed wraps the given callback function into the ResponseHandler interface and translates the generic response to wpm.
 func OnMorseSpeed(callback func(int)) (ResponseHandler, string, string) {
 	return ResponseHandlerFunc(func(r protocol.Response) {
+		if len(r.Data) == 0 {
+			return
+		}
 		wpm, err := strconv.Atoi(r.Data[0])
 		if err != nil {
 			log.Printf("hamlib: cannot parse morse speed result: %v", err)
