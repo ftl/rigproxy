@@ -1,6 +1,6 @@
 module github.com/ftl/rigproxy
 
-go 1.19
+go 1.26
 
 require (
 	github.com/ftl/hamradio v0.2.6
